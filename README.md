@@ -1,56 +1,114 @@
-# Welcome to your Expo app 👋
+# AIQuickChat 🤖
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A multi-agent chat client built with **Expo (SDK 57)**, **React Native**, and **TypeScript**. Chats, messages, and AI agent configurations are stored locally on-device using **SQLite** via **Drizzle ORM**.
 
-## Get started
+Each chat is bound to an **agent** (model + API key + base URL) that you configure inside the app, so you can talk to any OpenAI-compatible endpoint (DeepSeek, OpenAI, etc.).
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+- 💬 **Chats list** — home screen listing all conversations, sorted by last activity
+- 🧠 **Agents** — configure model name, API key, and base URL (e.g. `https://api.deepseek.com/v1`)
+- 🗃️ **Local persistence** — chats and messages are stored in a local SQLite database (`aiquickchat.db`)
+- 📱 **Works on iOS, Android, but not on web**
 
-2. Start the app
+## Prerequisites
 
-   ```bash
-   npx expo start
-   ```
+Before you start, make sure you have the following installed:
 
-In the output, you'll find options to open the app in a
+| Tool                             | Why you need it                                                 |
+| -------------------------------- | --------------------------------------------------------------- |
+| **Node.js** (18+ recommended)    | Runs the Expo dev server and npm scripts                        |
+| **npm**                          | Installs dependencies (comes with Node.js)                      |
+| **Xcode** (macOS only)           | Required to run the **iOS Simulator**                           |
+| **Android Studio + Android SDK** | Required to run the **Android Emulator**                        |
+| **Expo Go** (optional)           | Lets you run the app on a **physical device** without emulators |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+> ⚠️ **Observation:** You have to have an **iOS Simulator** or **Android Emulator** configured to run the app on those platforms. Alternatively, install the **Expo Go** app on your physical phone and scan the QR code — no emulator needed.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Getting started
 
-## Get a fresh project
-
-When you're ready, run:
+### 1. Install dependencies
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 2. Start the development server
 
-### Other setup steps
+```bash
+npm start
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The Expo CLI will start the dev server and show a QR code plus a list of keyboard shortcuts.
 
-## Learn more
+### 3. Open the app
 
-To learn more about developing your project with Expo, look at the following resources:
+From the terminal output, press:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- **`i`** → open in the **iOS Simulator** (requires Xcode)
+- **`a`** → open in the **Android Emulator** (requires Android Studio)
+- **`w`** → open in the **web browser**
 
-## Join the community
+Or scan the QR code with the **Expo Go** app on your phone (must be on the same Wi-Fi network).
 
-Join our community of developers creating universal apps.
+### Alternative one-shot commands
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run ios      # start and open iOS Simulator
+npm run android  # start and open Android Emulator
+npm run web      # start and open in the browser
+```
+
+## Using the app
+
+1. **Create an agent** — tap **"⚙️ Agentes"** in the top-right corner of the home screen, then **"+ Novo"** and fill in:
+   - **Name** — e.g. `DeepSeek Assistant`
+   - **Model** — e.g. `deepseek-chat`
+   - **API key** — your provider key (e.g. `sk-...`)
+   - **Base URL** — defaults to `https://api.deepseek.com/v1` (any OpenAI-compatible endpoint works)
+2. **Start a chat** — tap **"+ Novo chat"**, pick an agent, and start sending messages.
+3. **Talk** — messages are saved locally and reloaded every time you open the chat.
+
+## Database & migrations
+
+The app uses **Drizzle ORM** with **expo-sqlite**. The schema lives in `db/schema.ts` and SQL migrations in `drizzle/`.
+
+Migrations run automatically on app startup (via `useMigrations`), so there's nothing you need to do. If you change the schema, regenerate the migration with:
+
+```bash
+npm run db:generate
+```
+
+## Environment variables
+
+The `.env.example` file declares `DEEPSEEK_API_KEY`, which is exposed to `app.config.js` only. **The app no longer reads it at runtime** — API keys are configured per agent inside the app and stored in the local database. You can safely ignore `.env` unless you plan to reference the key somewhere else.
+
+## Project structure
+
+```
+├── app.config.js           # Expo app config (env vars, splash, icons)
+├── db/
+│   ├── schema.ts           # Drizzle schema: agents, chats, messages
+│   └── index.ts            # SQLite client + Drizzle instance
+├── drizzle/                # Generated SQL migrations
+├── src/
+│   ├── app/                # Routes (expo-router)
+│   │   ├── _layout.tsx     # Root Stack + DB migrations
+│   │   ├── chats-list.tsx  # Home: list of chats
+│   │   ├── chat/[id].tsx   # Chat screen (persisted messages)
+│   │   └── agents.tsx      # Agent CRUD
+│   ├── components/         # Reusable UI (chat list item, agent form modal)
+│   ├── services/           # chatService.ts (OpenAI-compatible API calls)
+│   └── utils/              # formatters.ts (relative time, masking)
+```
+
+## Troubleshooting & notes
+
+- **"You have to have iOS or Android emulator configured"** — on macOS, install Xcode for the iOS Simulator; on any OS, install Android Studio + an AVD (Android Virtual Device) for the Android Emulator. Or skip emulators entirely and use **Expo Go** on your phone.
+- **API keys are stored in plain text** in the local SQLite database — fine for development, but don't ship this without encryption (e.g. SQLCipher or the OS keychain).
+- If you change `db/schema.ts`, run `npm run db:generate` and restart the app so the new migration runs.
+- Useful commands: `npx tsc --noEmit` (type check), `npx expo lint` (linter).
+
+## License
+
+See the [LICENSE](./LICENSE) file.
